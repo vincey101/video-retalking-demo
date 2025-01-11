@@ -32,7 +32,7 @@ function updateGenerateButton() {
 }
 
 // Handle generate button click
-document.getElementById('generateBtn').addEventListener('click', async () => {
+document.getElementById('generateBtn').addEventListener('click', () => {
     const generateBtn = document.getElementById('generateBtn');
     const progressContainer = document.querySelector('.progress-container');
     const progress = document.querySelector('.progress');
@@ -54,53 +54,80 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     formData.append('face', videoFile);
     formData.append('audio', audioFile);
 
-    try {
-        // Simulate progress
-        let progressValue = 0;
-        const progressInterval = setInterval(() => {
-            if (progressValue < 90) {
-                progressValue += 5;
-                progress.style.width = `${progressValue}%`;
-            }
-        }, 1000);
-
-        // Make API request using axios
-        const response = await axios({
-            method: 'post',
-            url: API_URL,
-            data: formData,
-            headers: {
-                'X-API-Key': API_KEY,
-                'Content-Type': 'multipart/form-data'
-            }
-        });
-
-        clearInterval(progressInterval);
-
-        if (response.data.status === 'success') {
-            progress.style.width = '100%';
-            statusText.textContent = 'Video generated successfully!';
-            statusText.classList.remove('error');
-            
-            // Setup download button
-            downloadBtn.hidden = false;
-            downloadBtn.onclick = () => window.location.href = response.data.data.download_url;
-        } else {
-            throw new Error(response.data.message || 'Generation failed');
+    // Simulate progress
+    let progressValue = 0;
+    const progressInterval = setInterval(() => {
+        if (progressValue < 90) {
+            progressValue += 5;
+            progress.style.width = `${progressValue}%`;
         }
-    } catch (error) {
+    }, 1000);
+
+    // Create XMLHttpRequest
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', API_URL, true);
+    xhr.setRequestHeader('X-API-Key', API_KEY);
+
+    // Setup handlers
+    xhr.onload = function() {
+        clearInterval(progressInterval);
+        
+        if (xhr.status === 200) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (response.status === 'success') {
+                    progress.style.width = '100%';
+                    statusText.textContent = 'Video generated successfully!';
+                    statusText.classList.remove('error');
+                    
+                    // Setup download button
+                    downloadBtn.hidden = false;
+                    downloadBtn.onclick = () => window.location.href = response.data.download_url;
+                } else {
+                    throw new Error(response.message || 'Generation failed');
+                }
+            } catch (error) {
+                handleError('Failed to parse response: ' + error.message);
+            }
+        } else {
+            handleError(`Server returned status ${xhr.status}: ${xhr.statusText}`);
+        }
+    };
+
+    xhr.onerror = function() {
+        clearInterval(progressInterval);
+        handleError('Network error occurred. Please check if the server is accessible.');
+        console.log('XHR Error:', xhr);
+    };
+
+    xhr.upload.onprogress = function(e) {
+        if (e.lengthComputable) {
+            const percentComplete = (e.loaded / e.total) * 100;
+            progress.style.width = percentComplete + '%';
+        }
+    };
+
+    // Function to handle errors
+    function handleError(message) {
         progress.style.width = '100%';
         progress.style.backgroundColor = '#ff0000';
-        statusText.textContent = error.response?.data?.message || error.message || 'Network error occurred';
+        statusText.textContent = message;
         statusText.classList.add('error');
-        console.error('Full error:', error); // This will help debug the issue
+        console.error('Error:', message);
+        
+        // Reset after 3 seconds
+        setTimeout(() => {
+            progressContainer.hidden = true;
+            progress.style.width = '0%';
+            progress.style.backgroundColor = '#4CAF50';
+            generateBtn.disabled = false;
+        }, 3000);
     }
 
-    // Hide progress after 3 seconds
-    setTimeout(() => {
-        progressContainer.hidden = true;
-        progress.style.width = '0%';
-        progress.style.backgroundColor = '#4CAF50';
-        generateBtn.disabled = false;
-    }, 3000);
+    // Send the request
+    try {
+        xhr.send(formData);
+    } catch (error) {
+        handleError('Failed to send request: ' + error.message);
+    }
 }); 

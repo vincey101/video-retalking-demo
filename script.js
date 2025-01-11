@@ -32,7 +32,7 @@ function updateGenerateButton() {
 }
 
 // Handle generate button click
-document.getElementById('generateBtn').addEventListener('click', () => {
+document.getElementById('generateBtn').addEventListener('click', async () => {
     const generateBtn = document.getElementById('generateBtn');
     const progressContainer = document.querySelector('.progress-container');
     const progress = document.querySelector('.progress');
@@ -63,7 +63,6 @@ document.getElementById('generateBtn').addEventListener('click', () => {
         }
     }, 1000);
 
-    // Create XMLHttpRequest
     try {
         const response = await fetch(API_URL, {
             method: 'POST',
@@ -100,4 +99,26 @@ document.getElementById('generateBtn').addEventListener('click', () => {
         handleError(error.message);
         console.error('Full error:', error);
     }
-}); 
+});
+
+// Add the handleError function that was missing
+function handleError(message) {
+    const progress = document.querySelector('.progress');
+    const statusText = document.getElementById('statusText');
+    const generateBtn = document.getElementById('generateBtn');
+    const progressContainer = document.querySelector('.progress-container');
+
+    progress.style.width = '100%';
+    progress.style.backgroundColor = '#ff0000';
+    statusText.textContent = message;
+    statusText.classList.add('error');
+    console.error('Error:', message);
+    
+    // Reset after 3 seconds
+    setTimeout(() => {
+        progressContainer.hidden = true;
+        progress.style.width = '0%';
+        progress.style.backgroundColor = '#4CAF50';
+        generateBtn.disabled = false;
+    }, 3000);
+} 

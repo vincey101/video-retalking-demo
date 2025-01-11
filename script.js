@@ -1,5 +1,5 @@
 const API_KEY = '2e3354569b0d5b108e7298434e491008122d983ce7c87cd4815f529e7027a09d';
-const API_URL = 'http://204.12.229.26:5000/api/generate';
+const API_URL = '/api/generate';
 
 let videoFile = null;
 let audioFile = null;

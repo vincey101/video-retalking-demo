@@ -64,34 +64,36 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             }
         }, 1000);
 
-        // Make API request using fetch instead of XMLHttpRequest
-        const response = await fetch(API_URL, {
-            method: 'POST',
+        // Make API request using axios
+        const response = await axios({
+            method: 'post',
+            url: API_URL,
+            data: formData,
             headers: {
-                'X-API-Key': API_KEY
-            },
-            body: formData
+                'X-API-Key': API_KEY,
+                'Content-Type': 'multipart/form-data'
+            }
         });
 
-        const data = await response.json();
         clearInterval(progressInterval);
 
-        if (data.status === 'success') {
+        if (response.data.status === 'success') {
             progress.style.width = '100%';
             statusText.textContent = 'Video generated successfully!';
             statusText.classList.remove('error');
             
             // Setup download button
             downloadBtn.hidden = false;
-            downloadBtn.onclick = () => window.location.href = data.data.download_url;
+            downloadBtn.onclick = () => window.location.href = response.data.data.download_url;
         } else {
-            throw new Error(data.message || 'Generation failed');
+            throw new Error(response.data.message || 'Generation failed');
         }
     } catch (error) {
         progress.style.width = '100%';
         progress.style.backgroundColor = '#ff0000';
-        statusText.textContent = error.message;
+        statusText.textContent = error.response?.data?.message || error.message || 'Network error occurred';
         statusText.classList.add('error');
+        console.error('Full error:', error); // This will help debug the issue
     }
 
     // Hide progress after 3 seconds

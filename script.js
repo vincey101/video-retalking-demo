@@ -64,90 +64,40 @@ document.getElementById('generateBtn').addEventListener('click', () => {
     }, 1000);
 
     // Create XMLHttpRequest
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', API_URL, true);
-    
-    // Add all necessary headers
-    xhr.setRequestHeader('X-API-Key', API_KEY);
-    xhr.setRequestHeader('Accept', '*/*');
-    xhr.withCredentials = false;  // Important for CORS
-
-    // Setup handlers
-    xhr.onload = function() {
-        clearInterval(progressInterval);
-        
-        if (xhr.status === 200) {
-            try {
-                const response = JSON.parse(xhr.responseText);
-                if (response.status === 'success') {
-                    progress.style.width = '100%';
-                    statusText.textContent = 'Video generated successfully!';
-                    statusText.classList.remove('error');
-                    
-                    // Setup download button
-                    downloadBtn.hidden = false;
-                    downloadBtn.onclick = () => {
-                        const downloadUrl = response.data.download_url;
-                        // Create a temporary anchor element
-                        const a = document.createElement('a');
-                        a.href = downloadUrl;
-                        a.download = 'generated-video.mp4'; // Suggested filename
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                    };
-                } else {
-                    throw new Error(response.message || 'Generation failed');
-                }
-            } catch (error) {
-                handleError('Failed to parse response: ' + error.message);
-            }
-        } else {
-            handleError(`Server returned status ${xhr.status}: ${xhr.statusText}`);
-        }
-    };
-
-    xhr.onerror = function() {
-        clearInterval(progressInterval);
-        handleError('Network error occurred. Please check if the server is accessible.');
-        console.log('XHR Error Details:', {
-            status: xhr.status,
-            statusText: xhr.statusText,
-            readyState: xhr.readyState,
-            responseType: xhr.responseType,
-            responseURL: xhr.responseURL,
-            getAllResponseHeaders: xhr.getAllResponseHeaders()
-        });
-    };
-
-    xhr.upload.onprogress = function(e) {
-        if (e.lengthComputable) {
-            const percentComplete = (e.loaded / e.total) * 100;
-            progress.style.width = percentComplete + '%';
-        }
-    };
-
-    // Function to handle errors
-    function handleError(message) {
-        progress.style.width = '100%';
-        progress.style.backgroundColor = '#ff0000';
-        statusText.textContent = message;
-        statusText.classList.add('error');
-        console.error('Error:', message);
-        
-        // Reset after 3 seconds
-        setTimeout(() => {
-            progressContainer.hidden = true;
-            progress.style.width = '0%';
-            progress.style.backgroundColor = '#4CAF50';
-            generateBtn.disabled = false;
-        }, 3000);
-    }
-
-    // Send the request
     try {
-        xhr.send(formData);
+        const response = await fetch(API_URL, {
+            method: 'POST',
+            headers: {
+                'X-API-Key': API_KEY,
+                'Accept': '*/*'
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        clearInterval(progressInterval);
+
+        if (data.status === 'success') {
+            progress.style.width = '100%';
+            statusText.textContent = 'Video generated successfully!';
+            statusText.classList.remove('error');
+            
+            // Setup download button
+            downloadBtn.hidden = false;
+            downloadBtn.onclick = () => {
+                const downloadUrl = data.data.download_url;
+                window.location.href = downloadUrl;
+            };
+        } else {
+            throw new Error(data.message || 'Generation failed');
+        }
     } catch (error) {
-        handleError('Failed to send request: ' + error.message);
+        clearInterval(progressInterval);
+        handleError(error.message);
+        console.error('Full error:', error);
     }
 }); 

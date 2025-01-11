@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Retalking</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Video Retalking</h2>
+            <p>Generate talking videos from face and audio inputs</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="input-section">
+                <div class="video-section">
+                    <button id="videoBtn" class="upload-btn">Choose Video</button>
+                    <input type="file" id="videoInput" accept="video/*" hidden>
+                    <video id="videoPreview" controls hidden></video>
+                </div>
+
+                <div class="audio-section">
+                    <button id="audioBtn" class="upload-btn">Choose Audio</button>
+                    <input type="file" id="audioInput" accept="audio/*" hidden>
+                    <audio id="audioPreview" controls hidden></audio>
+                </div>
+
+                <button id="generateBtn" class="generate-btn" disabled>Generate</button>
+                
+                <div class="progress-container" hidden>
+                    <div class="progress-bar">
+                        <div class="progress"></div>
+                    </div>
+                    <p id="statusText"></p>
+                </div>
+
+                <button id="downloadBtn" class="download-btn" hidden>Download Result</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html> 

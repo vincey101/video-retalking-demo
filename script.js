@@ -66,7 +66,11 @@ document.getElementById('generateBtn').addEventListener('click', () => {
     // Create XMLHttpRequest
     const xhr = new XMLHttpRequest();
     xhr.open('POST', API_URL, true);
+    
+    // Add all necessary headers
     xhr.setRequestHeader('X-API-Key', API_KEY);
+    xhr.setRequestHeader('Accept', '*/*');
+    xhr.withCredentials = false;  // Important for CORS
 
     // Setup handlers
     xhr.onload = function() {
@@ -82,7 +86,16 @@ document.getElementById('generateBtn').addEventListener('click', () => {
                     
                     // Setup download button
                     downloadBtn.hidden = false;
-                    downloadBtn.onclick = () => window.location.href = response.data.download_url;
+                    downloadBtn.onclick = () => {
+                        const downloadUrl = response.data.download_url;
+                        // Create a temporary anchor element
+                        const a = document.createElement('a');
+                        a.href = downloadUrl;
+                        a.download = 'generated-video.mp4'; // Suggested filename
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    };
                 } else {
                     throw new Error(response.message || 'Generation failed');
                 }
@@ -97,7 +110,14 @@ document.getElementById('generateBtn').addEventListener('click', () => {
     xhr.onerror = function() {
         clearInterval(progressInterval);
         handleError('Network error occurred. Please check if the server is accessible.');
-        console.log('XHR Error:', xhr);
+        console.log('XHR Error Details:', {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            readyState: xhr.readyState,
+            responseType: xhr.responseType,
+            responseURL: xhr.responseURL,
+            getAllResponseHeaders: xhr.getAllResponseHeaders()
+        });
     };
 
     xhr.upload.onprogress = function(e) {

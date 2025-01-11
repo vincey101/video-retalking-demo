@@ -64,28 +64,41 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             }
         }, 1000);
 
-        // Make API request
-        const response = await fetch(API_URL, {
-            method: 'POST',
-            headers: {
-                'X-API-Key': API_KEY
-            },
-            body: formData
+        // Make API request using XMLHttpRequest instead of fetch
+        const xhr = new XMLHttpRequest();
+        
+        // Create a Promise to handle the XMLHttpRequest
+        const response = await new Promise((resolve, reject) => {
+            xhr.open('POST', API_URL, true);
+            xhr.setRequestHeader('X-API-Key', API_KEY);
+            
+            xhr.onload = function() {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve(JSON.parse(xhr.responseText));
+                } else {
+                    reject(new Error('Request failed'));
+                }
+            };
+            
+            xhr.onerror = function() {
+                reject(new Error('Network error occurred'));
+            };
+            
+            xhr.send(formData);
         });
 
-        const data = await response.json();
         clearInterval(progressInterval);
 
-        if (data.status === 'success') {
+        if (response.status === 'success') {
             progress.style.width = '100%';
             statusText.textContent = 'Video generated successfully!';
             statusText.classList.remove('error');
             
             // Setup download button
             downloadBtn.hidden = false;
-            downloadBtn.onclick = () => window.location.href = data.data.download_url;
+            downloadBtn.onclick = () => window.location.href = response.data.download_url;
         } else {
-            throw new Error(data.message || 'Generation failed');
+            throw new Error(response.message || 'Generation failed');
         }
     } catch (error) {
         progress.style.width = '100%';

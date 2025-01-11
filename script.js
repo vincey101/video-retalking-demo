@@ -1,5 +1,5 @@
 const API_KEY = '2e3354569b0d5b108e7298434e491008122d983ce7c87cd4815f529e7027a09d';
-const API_URL = '/api/generate';
+const API_URL = '/.netlify/functions/generate';
 
 let videoFile = null;
 let audioFile = null;
@@ -54,16 +54,8 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     formData.append('face', videoFile);
     formData.append('audio', audioFile);
 
-    // Simulate progress
-    let progressValue = 0;
-    const progressInterval = setInterval(() => {
-        if (progressValue < 90) {
-            progressValue += 5;
-            progress.style.width = `${progressValue}%`;
-        }
-    }, 1000);
-
     try {
+        // Start the job
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
@@ -77,25 +69,59 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        clearInterval(progressInterval);
+        const { jobId } = await response.json();
+        statusText.textContent = 'Processing... This may take 10-20 minutes';
 
-        if (data.status === 'success') {
-            progress.style.width = '100%';
-            statusText.textContent = 'Video generated successfully!';
-            statusText.classList.remove('error');
-            
-            // Setup download button
-            downloadBtn.hidden = false;
-            downloadBtn.onclick = () => {
-                const downloadUrl = data.data.download_url;
-                window.location.href = downloadUrl;
-            };
-        } else {
-            throw new Error(data.message || 'Generation failed');
-        }
+        // Start polling for status
+        const pollInterval = setInterval(async () => {
+            try {
+                const statusResponse = await fetch(`${API_URL}?jobId=${jobId}`, {
+                    headers: {
+                        'X-API-Key': API_KEY
+                    }
+                });
+                
+                if (!statusResponse.ok) {
+                    throw new Error('Failed to check status');
+                }
+
+                const statusData = await statusResponse.json();
+
+                if (statusData.status === 'completed') {
+                    clearInterval(pollInterval);
+                    progress.style.width = '100%';
+                    statusText.textContent = 'Video generated successfully!';
+                    
+                    // Setup download button
+                    downloadBtn.hidden = false;
+                    downloadBtn.onclick = () => {
+                        const downloadUrl = statusData.data.data.download_url;
+                        window.location.href = downloadUrl;
+                    };
+                    generateBtn.disabled = false;
+                } else if (statusData.status === 'error') {
+                    clearInterval(pollInterval);
+                    handleError(statusData.error);
+                } else {
+                    // Update progress (simulate progress as actual progress isn't available)
+                    const currentProgress = parseInt(progress.style.width) || 0;
+                    if (currentProgress < 90) {
+                        progress.style.width = `${currentProgress + 1}%`;
+                    }
+                }
+            } catch (error) {
+                console.error('Polling error:', error);
+                // Don't clear interval on polling errors, keep trying
+            }
+        }, 10000); // Poll every 10 seconds
+
+        // Add a timeout after 25 minutes
+        setTimeout(() => {
+            clearInterval(pollInterval);
+            handleError('Process timed out after 25 minutes');
+        }, 25 * 60 * 1000);
+
     } catch (error) {
-        clearInterval(progressInterval);
         handleError(error.message);
         console.error('Full error:', error);
     }
@@ -113,7 +139,7 @@ function handleError(message) {
     statusText.textContent = message;
     statusText.classList.add('error');
     console.error('Error:', message);
-    
+
     // Reset after 3 seconds
     setTimeout(() => {
         progressContainer.hidden = true;

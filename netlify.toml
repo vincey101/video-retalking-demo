@@ -3,10 +3,11 @@
   to = "http://204.12.229.26:5000/api/:splat"
   status = 200
   force = true
+  headers = {X-API-Key = "2e3354569b0d5b108e7298434e491008122d983ce7c87cd4815f529e7027a09d"}
 
-[[headers]]
-  for = "/api/*"
-  [headers.values]
-    Access-Control-Allow-Origin = "*"
-    Access-Control-Allow-Methods = "POST, OPTIONS"
-    Access-Control-Allow-Headers = "X-API-Key, Content-Type" 
+[build]
+  functions = "functions"
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["form-data", "node-fetch"] 

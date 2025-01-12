@@ -55,14 +55,22 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     formData.append('audio', audioFile);
 
     try {
+        // Convert files to base64
+        const videoBase64 = await fileToBase64(videoFile);
+        const audioBase64 = await fileToBase64(audioFile);
+
         // Start the job
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'X-API-Key': API_KEY,
-                'Accept': '*/*'
+                'Accept': '*/*',
+                'Content-Type': 'application/json'
             },
-            body: formData
+            body: JSON.stringify({
+                face: videoBase64,
+                audio: audioBase64
+            })
         });
 
         if (!response.ok) {
@@ -95,7 +103,16 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
                     // Setup download button
                     downloadBtn.hidden = false;
                     downloadBtn.onclick = () => {
-                        const downloadUrl = statusData.data.data.download_url;
+                        // Check the data structure and provide a fallback
+                        const downloadUrl = statusData.data?.data?.download_url || 
+                                         statusData.data?.download_url ||
+                                         statusData?.download_url;
+                        
+                        if (!downloadUrl) {
+                            handleError('Download URL not found in response');
+                            return;
+                        }
+                        
                         window.location.href = downloadUrl;
                     };
                     generateBtn.disabled = false;
@@ -147,4 +164,16 @@ function handleError(message) {
         progress.style.backgroundColor = '#4CAF50';
         generateBtn.disabled = false;
     }, 3000);
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+    });
 } 

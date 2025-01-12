@@ -45,6 +45,14 @@ exports.handler = async function(event, context) {
 
   if (event.httpMethod === 'POST') {
     try {
+      // Parse the multipart form data
+      const body = JSON.parse(event.body);
+      const formData = new FormData();
+      
+      // Append the files to FormData
+      if (body.face) formData.append('face', Buffer.from(body.face), 'face.mp4');
+      if (body.audio) formData.append('audio', Buffer.from(body.audio), 'audio.mp3');
+
       // Generate a unique job ID
       const jobId = Date.now().toString();
       
@@ -57,14 +65,16 @@ exports.handler = async function(event, context) {
         headers: {
           'X-API-Key': '2e3354569b0d5b108e7298434e491008122d983ce7c87cd4815f529e7027a09d'
         },
-        body: event.body
+        body: formData
       }).then(async (response) => {
         const data = await response.json();
+        console.log('API Response:', data); // Debug log
         activeJobs.set(jobId, {
           status: 'completed',
           data: data
         });
       }).catch(error => {
+        console.error('API Error:', error); // Debug log
         activeJobs.set(jobId, {
           status: 'error',
           error: error.message
@@ -81,6 +91,7 @@ exports.handler = async function(event, context) {
         body: JSON.stringify({ jobId })
       };
     } catch (error) {
+      console.error('Handler Error:', error); // Debug log
       return {
         statusCode: 500,
         body: JSON.stringify({ error: error.message })

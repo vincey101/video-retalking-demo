@@ -66,27 +66,34 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     try {
         console.log('Starting API request...'); // Debug log
 
-        // Make API request
+        // Make API request with different CORS settings
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
-                'X-API-Key': API_KEY,
-                'Accept': '*/*'
+                'X-API-Key': API_KEY
             },
-            body: formData
+            body: formData,
+            mode: 'cors',
+            credentials: 'same-origin'  // Changed from 'omit' to 'same-origin'
+        }).catch(error => {
+            console.error('Fetch error:', error);
+            throw new Error('Network request failed');
         });
 
+        console.log('Response status:', response.status); // Debug log
+        console.log('Response headers:', [...response.headers.entries()]); // Debug log
+
         if (!response.ok) {
-            console.error('Response not OK:', {
-                status: response.status,
-                statusText: response.statusText
-            });
-            throw new Error(`HTTP error! status: ${response.status}`);
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            throw new Error(`Server error: ${response.status}`);
         }
 
-        console.log('Response received, parsing JSON...'); // Debug log
+        const data = await response.json().catch(error => {
+            console.error('JSON parse error:', error);
+            throw new Error('Failed to parse server response');
+        });
 
-        const data = await response.json();
         console.log('Response data:', data); // Debug log
 
         clearInterval(progressInterval);
@@ -104,20 +111,14 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
                     .replace('204.12.229.26:5000', 'www.appclickprojects.xyz');
                 
                 console.log('Download URL:', downloadUrl); // Debug log
-                
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = 'generated-video.mp4';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
+                window.location.href = downloadUrl;
             };
         } else {
             throw new Error(data.message || 'Generation failed');
         }
     } catch (error) {
         clearInterval(progressInterval);
-        console.error('Full error details:', error); // Debug log
+        console.error('Full error details:', error);
         progress.style.width = '100%';
         progress.style.backgroundColor = '#ff0000';
         statusText.textContent = `Error: ${error.message}`;

@@ -54,16 +54,16 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     formData.append('face', videoFile);
     formData.append('audio', audioFile);
 
-    try {
-        // Simulate progress
-        let progressValue = 0;
-        const progressInterval = setInterval(() => {
-            if (progressValue < 90) {
-                progressValue += 5;
-                progress.style.width = `${progressValue}%`;
-            }
-        }, 1000);
+    // Simulate progress
+    let progressValue = 0;
+    const progressInterval = setInterval(() => {
+        if (progressValue < 90) {
+            progressValue += 5;
+            progress.style.width = `${progressValue}%`;
+        }
+    }, 1000);
 
+    try {
         console.log('Starting API request...'); // Debug log
 
         // Make API request
@@ -71,14 +71,9 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             method: 'POST',
             headers: {
                 'X-API-Key': API_KEY,
-                'Accept': '*/*',
-                'Access-Control-Allow-Origin': '*'
+                'Accept': '*/*'
             },
-            body: formData,
-            credentials: 'omit' // Add this to prevent CORS issues
-        }).catch(error => {
-            console.error('Fetch error:', error); // Debug log
-            throw new Error(`Network error: ${error.message}`);
+            body: formData
         });
 
         if (!response.ok) {
@@ -91,11 +86,7 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
 
         console.log('Response received, parsing JSON...'); // Debug log
 
-        const data = await response.json().catch(error => {
-            console.error('JSON parse error:', error); // Debug log
-            throw new Error('Failed to parse response');
-        });
-
+        const data = await response.json();
         console.log('Response data:', data); // Debug log
 
         clearInterval(progressInterval);

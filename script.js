@@ -64,17 +64,40 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             }
         }, 1000);
 
+        console.log('Starting API request...'); // Debug log
+
         // Make API request
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'X-API-Key': API_KEY,
-                'Accept': '*/*'
+                'Accept': '*/*',
+                'Access-Control-Allow-Origin': '*'
             },
-            body: formData
+            body: formData,
+            credentials: 'omit' // Add this to prevent CORS issues
+        }).catch(error => {
+            console.error('Fetch error:', error); // Debug log
+            throw new Error(`Network error: ${error.message}`);
         });
 
-        const data = await response.json();
+        if (!response.ok) {
+            console.error('Response not OK:', {
+                status: response.status,
+                statusText: response.statusText
+            });
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        console.log('Response received, parsing JSON...'); // Debug log
+
+        const data = await response.json().catch(error => {
+            console.error('JSON parse error:', error); // Debug log
+            throw new Error('Failed to parse response');
+        });
+
+        console.log('Response data:', data); // Debug log
+
         clearInterval(progressInterval);
 
         if (data.status === 'success') {
@@ -85,17 +108,15 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             // Setup download button with HTTPS URL
             downloadBtn.hidden = false;
             downloadBtn.onclick = () => {
-                // Replace any HTTP URL with HTTPS
                 const downloadUrl = data.data.download_url
                     .replace('http://', 'https://')
                     .replace('204.12.229.26:5000', 'www.appclickprojects.xyz');
                 
                 console.log('Download URL:', downloadUrl); // Debug log
                 
-                // Create a temporary anchor element for download
                 const a = document.createElement('a');
                 a.href = downloadUrl;
-                a.download = 'generated-video.mp4'; // Suggested filename
+                a.download = 'generated-video.mp4';
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
@@ -104,17 +125,19 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             throw new Error(data.message || 'Generation failed');
         }
     } catch (error) {
+        clearInterval(progressInterval);
+        console.error('Full error details:', error); // Debug log
         progress.style.width = '100%';
         progress.style.backgroundColor = '#ff0000';
-        statusText.textContent = error.message;
+        statusText.textContent = `Error: ${error.message}`;
         statusText.classList.add('error');
+    } finally {
+        // Hide progress after 3 seconds
+        setTimeout(() => {
+            progressContainer.hidden = true;
+            progress.style.width = '0%';
+            progress.style.backgroundColor = '#4CAF50';
+            generateBtn.disabled = false;
+        }, 3000);
     }
-
-    // Hide progress after 3 seconds
-    setTimeout(() => {
-        progressContainer.hidden = true;
-        progress.style.width = '0%';
-        progress.style.backgroundColor = '#4CAF50';
-        generateBtn.disabled = false;
-    }, 3000);
 }); 

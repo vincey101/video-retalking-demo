@@ -82,11 +82,23 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
             statusText.textContent = 'Video generated successfully!';
             statusText.classList.remove('error');
             
-            // Setup download button
+            // Setup download button with HTTPS URL
             downloadBtn.hidden = false;
             downloadBtn.onclick = () => {
-                const downloadUrl = data.data.download_url.replace('http://204.12.229.26:5000', 'https://www.appclickprojects.xyz');
-                window.location.href = downloadUrl;
+                // Replace any HTTP URL with HTTPS
+                const downloadUrl = data.data.download_url
+                    .replace('http://', 'https://')
+                    .replace('204.12.229.26:5000', 'www.appclickprojects.xyz');
+                
+                console.log('Download URL:', downloadUrl); // Debug log
+                
+                // Create a temporary anchor element for download
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = 'generated-video.mp4'; // Suggested filename
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             };
         } else {
             throw new Error(data.message || 'Generation failed');

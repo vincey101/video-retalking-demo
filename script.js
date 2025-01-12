@@ -1,5 +1,5 @@
 const API_KEY = '2e3354569b0d5b108e7298434e491008122d983ce7c87cd4815f529e7027a09d';
-const API_URL = '/.netlify/functions/generate';
+const API_URL = 'https://www.appclickprojects.xyz/api/generate';
 
 let videoFile = null;
 let audioFile = null;
@@ -39,15 +39,15 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     const statusText = document.getElementById('statusText');
     const downloadBtn = document.getElementById('downloadBtn');
 
-    // Clear previous status and reset progress
+    // Reset everything at the start of new process
     statusText.textContent = '';
     statusText.classList.remove('error');
     progress.style.width = '0%';
     progress.style.backgroundColor = '#4CAF50';
+    downloadBtn.hidden = true;
+    progressContainer.hidden = false;
 
     generateBtn.disabled = true;
-    progressContainer.hidden = false;
-    downloadBtn.hidden = true;
 
     // Create form data
     const formData = new FormData();
@@ -55,125 +55,54 @@ document.getElementById('generateBtn').addEventListener('click', async () => {
     formData.append('audio', audioFile);
 
     try {
-        // Convert files to base64
-        const videoBase64 = await fileToBase64(videoFile);
-        const audioBase64 = await fileToBase64(audioFile);
+        // Simulate progress
+        let progressValue = 0;
+        const progressInterval = setInterval(() => {
+            if (progressValue < 90) {
+                progressValue += 5;
+                progress.style.width = `${progressValue}%`;
+            }
+        }, 1000);
 
-        // Start the job
+        // Make API request
         const response = await fetch(API_URL, {
             method: 'POST',
             headers: {
                 'X-API-Key': API_KEY,
-                'Accept': '*/*',
-                'Content-Type': 'application/json'
+                'Accept': '*/*'
             },
-            body: JSON.stringify({
-                face: videoBase64,
-                audio: audioBase64
-            })
+            body: formData
         });
 
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
+        const data = await response.json();
+        clearInterval(progressInterval);
+
+        if (data.status === 'success') {
+            progress.style.width = '100%';
+            statusText.textContent = 'Video generated successfully!';
+            statusText.classList.remove('error');
+            
+            // Setup download button
+            downloadBtn.hidden = false;
+            downloadBtn.onclick = () => {
+                const downloadUrl = data.data.download_url.replace('http://204.12.229.26:5000', 'https://www.appclickprojects.xyz');
+                window.location.href = downloadUrl;
+            };
+        } else {
+            throw new Error(data.message || 'Generation failed');
         }
-
-        const { jobId } = await response.json();
-        statusText.textContent = 'Processing... This may take 10-20 minutes';
-
-        // Start polling for status
-        const pollInterval = setInterval(async () => {
-            try {
-                const statusResponse = await fetch(`${API_URL}?jobId=${jobId}`, {
-                    headers: {
-                        'X-API-Key': API_KEY
-                    }
-                });
-                
-                if (!statusResponse.ok) {
-                    throw new Error('Failed to check status');
-                }
-
-                const statusData = await statusResponse.json();
-
-                if (statusData.status === 'completed') {
-                    clearInterval(pollInterval);
-                    progress.style.width = '100%';
-                    statusText.textContent = 'Video generated successfully!';
-                    
-                    // Setup download button
-                    downloadBtn.hidden = false;
-                    downloadBtn.onclick = () => {
-                        // Check the data structure and provide a fallback
-                        const downloadUrl = statusData.data?.data?.download_url || 
-                                         statusData.data?.download_url ||
-                                         statusData?.download_url;
-                        
-                        if (!downloadUrl) {
-                            handleError('Download URL not found in response');
-                            return;
-                        }
-                        
-                        window.location.href = downloadUrl;
-                    };
-                    generateBtn.disabled = false;
-                } else if (statusData.status === 'error') {
-                    clearInterval(pollInterval);
-                    handleError(statusData.error);
-                } else {
-                    // Update progress (simulate progress as actual progress isn't available)
-                    const currentProgress = parseInt(progress.style.width) || 0;
-                    if (currentProgress < 90) {
-                        progress.style.width = `${currentProgress + 1}%`;
-                    }
-                }
-            } catch (error) {
-                console.error('Polling error:', error);
-                // Don't clear interval on polling errors, keep trying
-            }
-        }, 10000); // Poll every 10 seconds
-
-        // Add a timeout after 25 minutes
-        setTimeout(() => {
-            clearInterval(pollInterval);
-            handleError('Process timed out after 25 minutes');
-        }, 25 * 60 * 1000);
-
     } catch (error) {
-        handleError(error.message);
-        console.error('Full error:', error);
+        progress.style.width = '100%';
+        progress.style.backgroundColor = '#ff0000';
+        statusText.textContent = error.message;
+        statusText.classList.add('error');
     }
-});
 
-// Add the handleError function that was missing
-function handleError(message) {
-    const progress = document.querySelector('.progress');
-    const statusText = document.getElementById('statusText');
-    const generateBtn = document.getElementById('generateBtn');
-    const progressContainer = document.querySelector('.progress-container');
-
-    progress.style.width = '100%';
-    progress.style.backgroundColor = '#ff0000';
-    statusText.textContent = message;
-    statusText.classList.add('error');
-    console.error('Error:', message);
-
-    // Reset after 3 seconds
+    // Hide progress after 3 seconds
     setTimeout(() => {
         progressContainer.hidden = true;
         progress.style.width = '0%';
         progress.style.backgroundColor = '#4CAF50';
         generateBtn.disabled = false;
     }, 3000);
-}
-
-function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-            const base64 = reader.result.split(',')[1];
-            resolve(base64);
-        };
-        reader.onerror = error => reject(error);
-    });
-} 
+}); 
